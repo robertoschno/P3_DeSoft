@@ -27,7 +27,7 @@ class Player(pygame.sprite.Sprite):
         
         # Centraliza embaixo da tela.
         self.rect.centerx = WIDTH / 2
-        self.rect.bottom = HEIGHT - 10
+        self.rect.bottom = HEIGHT / 2
         
         # Velocidade da nave
         self.speedx = 0
@@ -70,9 +70,14 @@ class Mob(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         
         # Sorteia um lugar inicial em x
-        self.rect.x = random.randrange(WIDTH - self.rect.width)
+        self.rect.x = random.randrange(-WIDTH, WIDTH*2)
         # Sorteia um lugar inicial em y
-        self.rect.y = random.randrange(-100, -40)
+        self.rect.y = random.randrange(-HEIGHT,HEIGHT*2)
+        #impede que meteoreos apareçam no meio da tela
+        while(0<self.rect.x<480 and -600<self.rect.y<0):
+            self.rect.x = random.randrange(-WIDTH, WIDTH*2)
+            self.rect.y = random.randrange(-HEIGHT,HEIGHT*2)
+            
         # Sorteia uma velocidade inicial
         self.speedx = random.randrange(-3, 3)
         self.speedy = random.randrange(2, 9)
@@ -102,14 +107,7 @@ class Mob(pygame.sprite.Sprite):
         
         self.rect.x += self.speedx
         self.rect.y += self.speedy
-        
-        # Se o meteoro passar do final da tela, volta para cima
-        if self.rect.top > HEIGHT + 10 or self.rect.left < -25 or self.rect.right > WIDTH + 20:
-            self.rect.x = random.randrange(WIDTH - self.rect.width)
-            self.rect.y = random.randrange(-100, -40)
-            self.speedx = random.randrange(-3, 3)
-            self.speedy = random.randrange(2, 9)
-         
+          
 # Classe Bullet que representa os tiros
 class Bullet(pygame.sprite.Sprite):
     
@@ -118,10 +116,12 @@ class Bullet(pygame.sprite.Sprite):
         
         # Construtor da classe pai (Sprite).
         pygame.sprite.Sprite.__init__(self)
+
         
         # Carregando a imagem de fundo.
         self.image = bullet_img
-        
+        #alcance
+        self.radius = 15
         # Deixando transparente.
         self.image.set_colorkey(BLACK)
         
@@ -130,15 +130,19 @@ class Bullet(pygame.sprite.Sprite):
         
         # Coloca no lugar inicial definido em x, y do constutor
         self.rect.bottom = y
-        self.rect.centerx = x
-        self.speedy = 0
+        self.rect.centerx = x   
+        self.speedy = -10
+        
 
     # Metodo que atualiza a posição da navinha
     def update(self):
         self.rect.y += self.speedy
         
+
+        self.radius -= 1
+        
         # Se o tiro passar do inicio da tela, morre.
-        if self.rect.bottom < 0:
+        if self.rect.bottom < 0 or self.radius == 0:
             self.kill()
 
 # Classe que representa uma explosão de meteoro
@@ -247,6 +251,7 @@ def game_screen(screen):
     bullets = pygame.sprite.Group()
 
     # Cria 8 meteoros e adiciona no grupo meteoros
+    
     for i in range(8):
         m = Mob(assets["mob_img"], player)
         all_sprites.add(m)
@@ -310,6 +315,8 @@ def game_screen(screen):
 
                     if event.key == pygame.K_DOWN:
                         player.speedy = 0
+                
+                if event.type == pygame.mouse.get_pos
 
                     
                     
