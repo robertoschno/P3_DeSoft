@@ -1,8 +1,10 @@
 import pygame
 import random
 from os import path
+import math
 
 from config import img_dir, snd_dir, fnt_dir, WIDTH, HEIGHT, BLACK, YELLOW, RED, FPS, QUIT
+
 
 # Classe Jogador que representa a nave
 class Player(pygame.sprite.Sprite):
@@ -50,7 +52,7 @@ class Player(pygame.sprite.Sprite):
             self.rect.top = 0
         if self.rect.bottom > HEIGHT:
             self.rect.bottom = HEIGHT
-                    
+
 # Classe Mob que representa os meteoros
 class Mob(pygame.sprite.Sprite):
     
@@ -112,7 +114,7 @@ class Mob(pygame.sprite.Sprite):
 class Bullet(pygame.sprite.Sprite):
     
     # Construtor da classe.
-    def __init__(self, x, y, bullet_img):
+    def __init__(self, x, y, mouse, bullet_img):
         
         # Construtor da classe pai (Sprite).
         pygame.sprite.Sprite.__init__(self)
@@ -129,20 +131,37 @@ class Bullet(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         
         # Coloca no lugar inicial definido em x, y do constutor
-        self.rect.bottom = y
-        self.rect.centerx = x   
-        self.speedy = -10
-        
+        self.rect.centery = y
+        self.rect.centerx = x
 
+        self.targetx = mouse[0]
+        self.targety = mouse[1]
+
+        dx = (mouse[0] - self.rect.centerx)
+        dy = (mouse[1] - self.rect.centery)
+       
+        #ddx = dx/((dx**2 + dy**2)**(1/2))
+        #ddy = dy/((dx**2 + dy**2)**(1/2))
+
+        #vx = (ddx**2+ddy**2)**(1/2)
+        #vy = (ddx**2+ddy**2)**(1/2)
+
+        self.speedx = dx/15
+        self.speedy = dy/15
+
+    
     # Metodo que atualiza a posição da navinha
-    def update(self):
+    def update(self): 
+        if self.speedx == 0:
+            self.kill()
+        if self.speedy == 0:
+            self.kill()
+       
+        self.rect.x += self.speedx
         self.rect.y += self.speedy
-        
-
-        self.radius -= 1
-        
+  
         # Se o tiro passar do inicio da tela, morre.
-        if self.rect.bottom < 0 or self.radius == 0:
+        if self.rect.y < 0 or self.radius == 0:
             self.kill()
 
 # Classe que representa uma explosão de meteoro
@@ -252,7 +271,7 @@ def game_screen(screen):
 
     # Cria 8 meteoros e adiciona no grupo meteoros
     
-    for i in range(8):
+    for i in range(0):
         m = Mob(assets["mob_img"], player)
         all_sprites.add(m)
         mobs.add(m)
@@ -269,6 +288,8 @@ def game_screen(screen):
     DONE = 2
 
     state = PLAYING
+
+    mouse = [0,0]
     while state != DONE:
         
         # Ajusta a velocidade do jogo.
@@ -291,7 +312,7 @@ def game_screen(screen):
                         player.speedx = 8
                     # Se for um espaço atira!
                     if event.key == pygame.K_SPACE:
-                        bullet = Bullet(player.rect.centerx, player.rect.top, assets["bullet_img"])
+                        bullet = Bullet(player.rect.centerx, player.rect.top, mouse, assets["bullet_img"])
                         all_sprites.add(bullet)
                         bullets.add(bullet)
                         pew_sound.play()
@@ -316,7 +337,10 @@ def game_screen(screen):
                     if event.key == pygame.K_DOWN:
                         player.speedy = 0
                 
-                if event.type == pygame.mouse.get_pos
+
+                if event.type == pygame.MOUSEMOTION:
+                    mouse = pygame.mouse.get_pos()
+                    
 
                     
                     
