@@ -1,8 +1,20 @@
 import pygame
 import random
 from os import path
+import math
 
 from config import img_dir, snd_dir, fnt_dir, WIDTH, HEIGHT, BLACK, YELLOW, RED, FPS, QUIT
+
+def animation(imgname,time,animname):
+    
+    for a in np.arange(time):
+        filename = "{0} {0}".format(imgname,a)
+        img=pygame.image.load(path.join(img_dir, filename)).convert()
+        img.set_colorkey(BLACK)
+        img_lg=pygame.transform.scale(img, (40,40))
+        anim[str(animname)].append(img_lg)
+    
+
 
 # Classe Jogador que representa a nave
 class Player(pygame.sprite.Sprite):
@@ -27,7 +39,7 @@ class Player(pygame.sprite.Sprite):
         
         # Centraliza embaixo da tela.
         self.rect.centerx = WIDTH / 2
-        self.rect.bottom = HEIGHT - 10
+        self.rect.bottom = HEIGHT / 2
         
         # Velocidade da nave
         self.speedx = 0
@@ -50,7 +62,7 @@ class Player(pygame.sprite.Sprite):
             self.rect.top = 0
         if self.rect.bottom > HEIGHT:
             self.rect.bottom = HEIGHT
-                    
+
 # Classe Mob que representa os meteoros
 class Mob(pygame.sprite.Sprite):
     
@@ -70,9 +82,14 @@ class Mob(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         
         # Sorteia um lugar inicial em x
-        self.rect.x = random.randrange(WIDTH - self.rect.width)
+        self.rect.x = random.randrange(-WIDTH, WIDTH*2)
         # Sorteia um lugar inicial em y
-        self.rect.y = random.randrange(-100, -40)
+        self.rect.y = random.randrange(-HEIGHT,HEIGHT*2)
+        #impede que meteoreos apareçam no meio da tela
+        while(0<self.rect.x<480 or -600<self.rect.y<0):
+            self.rect.x = random.randrange(-WIDTH, WIDTH*2)
+            self.rect.y = random.randrange(-HEIGHT,HEIGHT*2)
+            
         # Sorteia uma velocidade inicial
         self.speedx = random.randrange(-3, 3)
         self.speedy = random.randrange(2, 9)
@@ -91,37 +108,34 @@ class Mob(pygame.sprite.Sprite):
         py = self.player.rect.y
 
         if self.rect.x < px:
-            self.speedx = 3
+            self.speedx = 1
         else:
-            self.speedx = -3
+            self.speedx = -1
 
         if self.rect.y > py:
-            self.speedy = -3
+            self.speedy = -1
         else:
-            self.speedy = 3
+            self.speedy = 1
         
         self.rect.x += self.speedx
         self.rect.y += self.speedy
-        
-        # Se o meteoro passar do final da tela, volta para cima
-        if self.rect.top > HEIGHT + 10 or self.rect.left < -25 or self.rect.right > WIDTH + 20:
-            self.rect.x = random.randrange(WIDTH - self.rect.width)
-            self.rect.y = random.randrange(-100, -40)
-            self.speedx = random.randrange(-3, 3)
-            self.speedy = random.randrange(2, 9)
-         
+          
 # Classe Bullet que representa os tiros
 class Bullet(pygame.sprite.Sprite):
     
     # Construtor da classe.
-    def __init__(self, x, y, bullet_img):
+    def __init__(self, x, y, mouse, bullet_anim):
         
         # Construtor da classe pai (Sprite).
         pygame.sprite.Sprite.__init__(self)
-        
+
+        self.bullet_anim = bullet_anim
+        self.index = 0
+
         # Carregando a imagem de fundo.
-        self.image = bullet_img
-        
+        self.image = self.bullet_anim[self.index]
+        #alcance
+        self.radius = 15
         # Deixando transparente.
         self.image.set_colorkey(BLACK)
         
@@ -129,16 +143,38 @@ class Bullet(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         
         # Coloca no lugar inicial definido em x, y do constutor
-        self.rect.bottom = y
+        self.rect.centery = y
         self.rect.centerx = x
-        self.speedy = 0
+
+        self.targetx = mouse[0]
+        self.targety = mouse[1]
+
+        dx = (mouse[0] - self.rect.centerx)
+        dy = (mouse[1] - self.rect.centery)
+       
+        self.speedx = dx/15
+        self.speedy = dy/15
 
     # Metodo que atualiza a posição da navinha
-    def update(self):
+    def update(self): 
+
+        self.index += 1
+        if self.index > 2:
+            self.index = 0
+        self.image = self.bullet_anim[self.index]
+
+        if self.speedx == 0:
+            self.kill()
+        if self.speedy == 0:
+            self.kill()
+       
+        self.rect.x += self.speedx
         self.rect.y += self.speedy
-        
+
+        # self.image = bullet_anim[]
+
         # Se o tiro passar do inicio da tela, morre.
-        if self.rect.bottom < 0:
+        if self.rect.y < 0 or self.radius == 0:
             self.kill()
 
 # Classe que representa uma explosão de meteoro
@@ -196,11 +232,20 @@ def load_assets(img_dir, snd_dir, fnt_dir):
     assets = {}
     assets["player_img"] = pygame.image.load(path.join(img_dir, "playerShip1_orange.png")).convert()
     assets["mob_img"] = pygame.image.load(path.join(img_dir, "meteorBrown_med1.png")).convert()
-    assets["bullet_img"] = pygame.image.load(path.join(img_dir, "laserRed16.png")).convert()
     assets["background"] = pygame.image.load(path.join(img_dir, 'starfield.png')).convert()
     assets["boom_sound"] = pygame.mixer.Sound(path.join(snd_dir, 'expl3.wav'))
     assets["destroy_sound"] = pygame.mixer.Sound(path.join(snd_dir, 'expl6.wav'))
     assets["pew_sound"] = pygame.mixer.Sound(path.join(snd_dir, 'pew.wav'))
+    #faz as animações do tiro 
+    bullet_anim = []
+    for i in range(3):
+        filename = 'bullet{0}.png'.format(i)
+        img = pygame.image.load(path.join(img_dir,filename)).convert()
+        img = pygame.transform.scale(img, (25,25))
+        img.set_colorkey(BLACK)
+        bullet_anim.append(img)
+    assets["bullet_anim"] = bullet_anim
+    #faz as animações da explosão         
     explosion_anim = []
     for i in range(9):
         filename = 'regularExplosion0{}.png'.format(i)
@@ -224,12 +269,13 @@ def game_screen(screen):
     background_rect = background.get_rect()
 
     # Carrega os sons do jogo
-    pygame.mixer.music.load(path.join(snd_dir, 'tgfcoder-FrozenJam-SeamlessLoop.ogg'))
-    pygame.mixer.music.set_volume(0.4)
+    pygame.mixer.music.load(path.join(snd_dir, '16 bit Metal - Iron Maiden - Aces High - Mega Man X.mp3'))
     boom_sound = assets["boom_sound"]
     destroy_sound = assets["destroy_sound"]
     pew_sound = assets["pew_sound"]
-
+    pygame.mixer.music.set_volume(1)
+    #pygame.mixer.pew_sound.set_volume(0.4)
+    
     # Cria uma nave. O construtor será chamado automaticamente.
     player = Player(assets["player_img"])
 
@@ -247,7 +293,8 @@ def game_screen(screen):
     bullets = pygame.sprite.Group()
 
     # Cria 8 meteoros e adiciona no grupo meteoros
-    for i in range(8):
+    
+    for i in range(10):
         m = Mob(assets["mob_img"], player)
         all_sprites.add(m)
         mobs.add(m)
@@ -264,6 +311,8 @@ def game_screen(screen):
     DONE = 2
 
     state = PLAYING
+
+    mouse = [0,0]
     while state != DONE:
         
         # Ajusta a velocidade do jogo.
@@ -280,36 +329,42 @@ def game_screen(screen):
                 # Verifica se apertou alguma tecla.
                 if event.type == pygame.KEYDOWN:
                     # Dependendo da tecla, altera a velocidade.
-                    if event.key == pygame.K_LEFT:
+                    if event.key == pygame.K_a:
                         player.speedx = -8
-                    if event.key == pygame.K_RIGHT:
+                    if event.key == pygame.K_d:
                         player.speedx = 8
-                    # Se for um espaço atira!
-                    if event.key == pygame.K_SPACE:
-                        bullet = Bullet(player.rect.centerx, player.rect.top, assets["bullet_img"])
+                    
+                    if event.key == pygame.K_w:
+                        player.speedy = -8
+
+                    if event.key == pygame.K_s:
+                        player.speedy = 8
+                    
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:                  
+                        bullet = Bullet(player.rect.centerx, player.rect.top, mouse, assets["bullet_anim"])
                         all_sprites.add(bullet)
                         bullets.add(bullet)
                         pew_sound.play()
-
-                    if event.key == pygame.K_UP:
-                        player.speedy = -8
-
-                    if event.key == pygame.K_DOWN:
-                        player.speedy = 8
                         
                 # Verifica se soltou alguma tecla.
                 if event.type == pygame.KEYUP:
                     # Dependendo da tecla, altera a velocidade.
-                    if event.key == pygame.K_LEFT:
+                    if event.key == pygame.K_a:
                         player.speedx = 0
-                    if event.key == pygame.K_RIGHT:
+                    if event.key == pygame.K_d:
                         player.speedx = 0
 
-                    if event.key == pygame.K_UP:
+                    if event.key == pygame.K_w:
                         player.speedy = 0
 
-                    if event.key == pygame.K_DOWN:
+                    if event.key == pygame.K_s:
                         player.speedy = 0
+                
+
+                if event.type == pygame.MOUSEMOTION:
+                    mouse = pygame.mouse.get_pos()
+                    
 
                     
                     
