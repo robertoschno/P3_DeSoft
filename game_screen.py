@@ -5,31 +5,22 @@ import math
 
 from config import img_dir, snd_dir, fnt_dir, WIDTH, HEIGHT, BLACK, YELLOW, RED, FPS, QUIT
 
-def animation(imgname,time,animname):
-    
-    for a in np.arange(time):
-        filename = "{0} {0}".format(imgname,a)
-        img=pygame.image.load(path.join(img_dir, filename)).convert()
-        img.set_colorkey(BLACK)
-        img_lg=pygame.transform.scale(img, (40,40))
-        anim[str(animname)].append(img_lg)
-    
-
-
 # Classe Jogador que representa a nave
 class Player(pygame.sprite.Sprite):
     
     # Construtor da classe.
-    def __init__(self, player_img):
+    def __init__(self, player_anim):
         
         # Construtor da classe pai (Sprite).
         pygame.sprite.Sprite.__init__(self)
         
-        # Carregando a imagem de fundo.
-        self.image = player_img
+        # animação do jogador
+        self.player_anim = player_anim
+        self.index = 0
+        self.image = player_anim[self.index]
         
         # Diminuindo o tamanho da imagem.
-        self.image = pygame.transform.scale(player_img, (50, 38))
+        self.image = pygame.transform.scale(self.image, (50, 50))
         
         # Deixando transparente.
         self.image.set_colorkey(BLACK)
@@ -37,21 +28,26 @@ class Player(pygame.sprite.Sprite):
         # Detalhes sobre o posicionamento.
         self.rect = self.image.get_rect()
         
-        # Centraliza embaixo da tela.
+        # Faz o jogador começar no meio da tela
         self.rect.centerx = WIDTH / 2
         self.rect.bottom = HEIGHT / 2
         
-        # Velocidade da nave
+        # Velocidade do jogador 
         self.speedx = 0
         self.speedy = 0
         
         # Melhora a colisão estabelecendo um raio de um circulo
-        self.radius = 0
+        self.radius = 2
     
-    # Metodo que atualiza a posição da navinha
+    # Metodo que atualiza a posição d0 jogador e que executa sua animação
     def update(self):
         self.rect.x += self.speedx
         self.rect.y += self.speedy
+
+        self.index += 1
+        if self.index > 2:
+            self.index = 0
+        self.image = self.player_anim[self.index]
         
         # Mantem dentro da tela
         if self.rect.right > WIDTH:
@@ -63,17 +59,21 @@ class Player(pygame.sprite.Sprite):
         if self.rect.bottom > HEIGHT:
             self.rect.bottom = HEIGHT
 
-# Classe Mob que representa os meteoros
+# Classe Mob que representa os imigos
 class Mob(pygame.sprite.Sprite):
     
     # Construtor da classe.
-    def __init__(self, mob_img, player):
+    def __init__(self, mob_anim , player):
         
         # Construtor da classe pai (Sprite).
         pygame.sprite.Sprite.__init__(self)
         
-        # Diminuindo o tamanho da imagem.
-        self.image = pygame.transform.scale(mob_img, (50, 38))
+        # Fazendo a animação do jogador
+        self.mob_anim = mob_anim
+        self.index = 0
+        self.image = self.mob_anim[self.index]
+
+        self.image = pygame.transform.scale(self.image, (100, 76))
         
         # Deixando transparente.
         self.image.set_colorkey(BLACK)
@@ -100,9 +100,14 @@ class Mob(pygame.sprite.Sprite):
         self.player = player
 
         
-    # Metodo que atualiza a posição do meteoro
+    # Metodo que atualiza a posição do inimigo
     
     def update(self):
+
+        self.index += 1
+        if self.index > 2:
+            self.index = 0
+        self.image = self.mob_anim[self.index]
 
         px = self.player.rect.x
         py = self.player.rect.y
@@ -132,7 +137,7 @@ class Bullet(pygame.sprite.Sprite):
         self.bullet_anim = bullet_anim
         self.index = 0
 
-        # Carregando a imagem de fundo.
+        # Carregando a imagem do tiro
         self.image = self.bullet_anim[self.index]
         #alcance
         self.radius = 15
@@ -155,7 +160,7 @@ class Bullet(pygame.sprite.Sprite):
         self.speedx = dx/15
         self.speedy = dy/15
 
-    # Metodo que atualiza a posição da navinha
+    # Metodo que atualiza a posição do jogador, de onde os tiros sao disparados
     def update(self): 
 
         self.index += 1
@@ -171,13 +176,11 @@ class Bullet(pygame.sprite.Sprite):
         self.rect.x += self.speedx
         self.rect.y += self.speedy
 
-        # self.image = bullet_anim[]
-
         # Se o tiro passar do inicio da tela, morre.
         if self.rect.y < 0 or self.radius == 0:
             self.kill()
 
-# Classe que representa uma explosão de meteoro
+# Classe que representa uma explosão do inimigo (mob)
 class Explosion(pygame.sprite.Sprite):
 
     # Construtor da classe.
@@ -230,8 +233,25 @@ class Explosion(pygame.sprite.Sprite):
 # Carrega todos os assets uma vez só.
 def load_assets(img_dir, snd_dir, fnt_dir):
     assets = {}
-    assets["player_img"] = pygame.image.load(path.join(img_dir, "playerShip1_orange.png")).convert()
-    assets["mob_img"] = pygame.image.load(path.join(img_dir, "meteorBrown_med1.png")).convert()
+    #faz a animação do jogador
+    player_anim = []
+    for i in range(3):
+        filename = 'player_anim{0}.png'.format(i)
+        img = pygame.image.load(path.join(img_dir,filename)).convert()
+        img = pygame.transform.scale(img, (25,25))
+        img.set_colorkey(BLACK)
+        player_anim.append(img)
+    assets["player_anim"] = player_anim
+    #fazendo a animação do mob
+    mob_anim = []
+    for i in range(3):
+        filename = 'mob_amim{0}.png'.format(i)
+        img = pygame.image.load(path.join(img_dir,filename)).convert()
+        img = pygame.transform.scale(img, (25,25))
+        img.set_colorkey(BLACK)
+        mob_anim.append(img)
+    assets["mob_anim"] = mob_anim
+
     assets["background"] = pygame.image.load(path.join(img_dir, 'starfield.png')).convert()
     assets["boom_sound"] = pygame.mixer.Sound(path.join(snd_dir, 'expl3.wav'))
     assets["destroy_sound"] = pygame.mixer.Sound(path.join(snd_dir, 'expl6.wav'))
@@ -277,7 +297,7 @@ def game_screen(screen):
     #pygame.mixer.pew_sound.set_volume(0.4)
     
     # Cria uma nave. O construtor será chamado automaticamente.
-    player = Player(assets["player_img"])
+    player = Player(assets["player_anim"])
 
     # Carrega a fonte para desenhar o score.
     score_font = assets["score_font"]
@@ -295,7 +315,7 @@ def game_screen(screen):
     # Cria 8 meteoros e adiciona no grupo meteoros
     
     for i in range(10):
-        m = Mob(assets["mob_img"], player)
+        m = Mob(assets["mob_anim"], player)
         all_sprites.add(m)
         mobs.add(m)
 
@@ -378,7 +398,7 @@ def game_screen(screen):
             for hit in hits: # Pode haver mais de um
                 # O meteoro e destruido e precisa ser recriado
                 destroy_sound.play()
-                m = Mob(assets["mob_img"], player) 
+                m = Mob(assets["mob_anim"], player) 
                 all_sprites.add(m)
                 mobs.add(m)
 
@@ -411,11 +431,11 @@ def game_screen(screen):
                     state = DONE
                 else:
                     state = PLAYING
-                    player = Player(assets["player_img"])
+                    player = Player(assets["player_anim"])
                     all_sprites.add(player)
                     
                     for i in range(8):
-                        m = Mob(assets["mob_img"], player)
+                        m = Mob(assets["mob_anim"], player)
                         all_sprites.add(m)
                         mobs.add(m)
 
